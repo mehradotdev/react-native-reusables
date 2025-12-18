@@ -154,7 +154,7 @@ toast.promise = <T,>(
   promise: Promise<T>,
   messages: { loading: string; success: string; error: string },
   opts?: Partial<Omit<ToastData, 'id' | 'title' | 'type'>>
-) => {
+): Promise<T> => {
   const id = useToastStore.getState().add({
     title: messages.loading,
     ...opts,
@@ -162,23 +162,23 @@ toast.promise = <T,>(
     duration: Infinity,
   });
 
-  promise
-    .then(() => {
+  return promise
+    .then((result) => {
       useToastStore.getState().update(id, {
         title: messages.success,
         type: 'success',
         duration: useToastStore.getState().config.duration,
       });
+      return result;
     })
-    .catch(() => {
+    .catch((error) => {
       useToastStore.getState().update(id, {
         title: messages.error,
         type: 'error',
         duration: useToastStore.getState().config.duration,
       });
+      throw error;
     });
-
-  return promise;
 };
 
 toast.dismiss = (id: string) => useToastStore.getState().dismiss(id);
@@ -250,7 +250,7 @@ export function Toaster({ position = 'top-center', limit = 3, duration = 4000 }:
   // Sync props to store config
   useEffect(() => {
     setConfig({ limit, duration });
-  }, [limit, duration]);
+  }, [limit, duration, setConfig]);
 
   if (toasts.length === 0) return null;
 
